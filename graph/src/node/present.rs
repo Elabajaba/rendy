@@ -76,10 +76,10 @@ where
             .max(*caps.image_count.start());
 
         let present_mode = match () {
+            _ if caps.present_modes.contains(PresentMode::IMMEDIATE) => PresentMode::IMMEDIATE,
             _ if caps.present_modes.contains(PresentMode::FIFO) => PresentMode::FIFO,
             _ if caps.present_modes.contains(PresentMode::MAILBOX) => PresentMode::MAILBOX,
             _ if caps.present_modes.contains(PresentMode::RELAXED) => PresentMode::RELAXED,
-            _ if caps.present_modes.contains(PresentMode::IMMEDIATE) => PresentMode::IMMEDIATE,
             _ => panic!("No known present modes found"),
         };
 

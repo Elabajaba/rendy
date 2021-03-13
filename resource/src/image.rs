@@ -131,7 +131,9 @@ where
     pub unsafe fn dispose(self, device: &Device<B>, heaps: &mut Heaps<B>) {
         self.assert_device_owner(device);
         device.destroy_image(self.raw);
-        self.block.map(|block| heaps.free(device, block));
+        if let Some(block) = self.block {
+            heaps.free(device, block)
+        }
         self.relevant.dispose();
     }
 
@@ -216,7 +218,7 @@ pub struct ImageView<B: Backend> {
 
 device_owned!(ImageView<B> @ |view: &Self| view.image.device_id());
 /// Alias for the error to create an image view.
-pub type ImageViewCreationError = CreationError<ViewError>;
+pub type ImageViewCreationError = CreationError<ViewCreationError>;
 
 impl<B> ImageView<B>
 where
@@ -246,7 +248,7 @@ where
                     info.format,
                     info.swizzle,
                     SubresourceRange {
-                        aspects: info.range.aspects.clone(),
+                        aspects: info.range.aspects,
                         layers: info.range.layers.clone(),
                         levels: info.range.levels.clone(),
                     },
@@ -298,28 +300,14 @@ fn match_kind(kind: Kind, view_kind: ViewKind, view_caps: ViewCapabilities) -> b
         },
         Kind::D2(..) => match view_kind {
             ViewKind::D2 | ViewKind::D2Array => true,
-            ViewKind::Cube => {
-                if view_caps.contains(ViewCapabilities::KIND_CUBE) {
-                    true
-                } else {
-                    false
-                }
-            }
+            ViewKind::Cube => view_caps.contains(ViewCapabilities::KIND_CUBE),
             _ => false,
         },
         Kind::D3(..) => {
             if view_caps == ViewCapabilities::KIND_2D_ARRAY {
-                if view_kind == ViewKind::D2 {
-                    true
-                } else if view_kind == ViewKind::D2Array {
-                    true
-                } else {
-                    false
-                }
-            } else if view_kind == ViewKind::D3 {
-                true
+                view_kind == ViewKind::D2 || view_kind == ViewKind::D2Array
             } else {
-                false
+                view_kind == ViewKind::D3
             }
         }
     }

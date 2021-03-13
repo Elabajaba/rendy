@@ -105,8 +105,8 @@ where
         rendy_core::hal::command::CommandBuffer::bind_index_buffer(
             self.raw,
             rendy_core::hal::buffer::IndexBufferView {
-                buffer: buffer,
-                offset,
+                buffer,
+                range: rendy_core::hal::buffer::SubRange { offset, size: None },
                 index_type,
             },
         )
@@ -137,7 +137,12 @@ where
         rendy_core::hal::command::CommandBuffer::bind_vertex_buffers(
             self.raw,
             first_binding,
-            buffers,
+            buffers.into_iter().map(|(buffer, offset)| {
+                (
+                    buffer,
+                    rendy_core::hal::buffer::SubRange { offset, size: None },
+                )
+            }),
         )
     }
 

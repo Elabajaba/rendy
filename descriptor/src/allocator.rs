@@ -75,7 +75,7 @@ unsafe fn allocate_from_pool<B: Backend>(
     allocation: &mut SmallVec<[B::DescriptorSet; 1]>,
 ) -> Result<(), OutOfMemory> {
     let sets_were = allocation.len();
-    raw.allocate_sets(std::iter::repeat(layout).take(count as usize), allocation)
+    raw.allocate(std::iter::repeat(layout).take(count as usize), allocation)
         .map_err(|err| match err {
             AllocationError::Host => OutOfMemory::Host,
             AllocationError::Device => OutOfMemory::Device,
@@ -302,7 +302,7 @@ where
         let bucket = self
             .buckets
             .entry(layout_ranges)
-            .or_insert_with(|| DescriptorBucket::new());
+            .or_insert_with(DescriptorBucket::new);
         match bucket.allocate(device, layout, layout_ranges, count, &mut self.allocation) {
             Ok(()) => {
                 extend.extend(

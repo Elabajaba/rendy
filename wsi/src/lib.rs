@@ -217,6 +217,16 @@ where
             usage,
         })
     }
+
+    /// Dispose of Surface.
+    ///
+    /// # Safety
+    ///
+    /// Surface must be not in use.
+    pub unsafe fn dispose(self, instance: &Instance<B>) {
+        self.assert_instance_owner(instance);
+        instance.destroy_surface(self.raw);
+    }
 }
 
 unsafe fn create_swapchain<B: Backend>(
@@ -368,7 +378,9 @@ where
         };
 
         self.relevant.dispose();
-        self.swapchain.take().map(|s| device.destroy_swapchain(s));
+        if let Some(s) = self.swapchain.take() {
+            device.destroy_swapchain(s)
+        }
         self.surface
     }
 
@@ -406,7 +418,9 @@ where
             None => 0,
         };
 
-        self.swapchain.take().map(|s| device.destroy_swapchain(s));
+        if let Some(s) = self.swapchain.take() {
+            device.destroy_swapchain(s)
+        }
 
         let (swapchain, backbuffer, extent) = create_swapchain(
             &mut self.surface,

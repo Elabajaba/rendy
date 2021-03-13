@@ -289,7 +289,9 @@ where
     ///
     pub(crate) unsafe fn dispose(&mut self, device: &Device<B>) {
         self.family_ops.drain(..).for_each(|fu| {
-            fu.map(|fu| fu.into_inner().dispose(device));
+            if let Some(fu) = fu {
+                fu.into_inner().dispose(device)
+            }
         });
     }
 }
@@ -498,7 +500,6 @@ where
             device.destroy_fence(next.fence);
             pool.free_buffers(once(next.command_buffer));
         });
-        drop(pool);
         self.pool.dispose(device);
     }
 }

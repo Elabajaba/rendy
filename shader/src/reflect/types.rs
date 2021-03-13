@@ -171,10 +171,7 @@ pub(crate) fn type_element_format(
 impl ReflectInto<rendy_core::hal::pso::Element<Format>> for ReflectTypeDescription {
     fn reflect_into(&self) -> Result<rendy_core::hal::pso::Element<Format>, ReflectTypeError> {
         let format = type_element_format(self.type_flags, &self.traits)?;
-        Ok(rendy_core::hal::pso::Element {
-            format: format,
-            offset: 0,
-        })
+        Ok(rendy_core::hal::pso::Element { format, offset: 0 })
     }
 }
 
@@ -198,20 +195,56 @@ impl ReflectInto<rendy_core::hal::pso::AttributeDesc> for ReflectInterfaceVariab
 
 impl ReflectInto<rendy_core::hal::pso::DescriptorType> for ReflectDescriptorType {
     fn reflect_into(&self) -> Result<rendy_core::hal::pso::DescriptorType, ReflectTypeError> {
-        use rendy_core::hal::pso::DescriptorType;
+        use rendy_core::hal::pso::{
+            BufferDescriptorFormat, BufferDescriptorType, DescriptorType, ImageDescriptorType,
+        };
         use ReflectDescriptorType::*;
 
         match *self {
             Sampler => Ok(DescriptorType::Sampler),
-            CombinedImageSampler => Ok(DescriptorType::CombinedImageSampler),
-            SampledImage => Ok(DescriptorType::SampledImage),
-            StorageImage => Ok(DescriptorType::StorageImage),
-            UniformTexelBuffer => Ok(DescriptorType::UniformTexelBuffer),
-            StorageTexelBuffer => Ok(DescriptorType::StorageTexelBuffer),
-            UniformBuffer => Ok(DescriptorType::UniformBuffer),
-            StorageBuffer => Ok(DescriptorType::StorageBuffer),
-            UniformBufferDynamic => Ok(DescriptorType::UniformBufferDynamic),
-            StorageBufferDynamic => Ok(DescriptorType::StorageBufferDynamic),
+            CombinedImageSampler => Ok(DescriptorType::Image {
+                ty: ImageDescriptorType::Sampled { with_sampler: true },
+            }),
+            SampledImage => Ok(DescriptorType::Image {
+                ty: ImageDescriptorType::Sampled {
+                    with_sampler: false,
+                },
+            }),
+            StorageImage => Ok(DescriptorType::Image {
+                ty: ImageDescriptorType::Storage { read_only: false },
+            }),
+            UniformTexelBuffer => Ok(DescriptorType::Buffer {
+                ty: BufferDescriptorType::Uniform,
+                format: BufferDescriptorFormat::Texel,
+            }),
+            StorageTexelBuffer => Ok(DescriptorType::Buffer {
+                ty: BufferDescriptorType::Storage { read_only: false },
+                format: BufferDescriptorFormat::Texel,
+            }),
+            UniformBuffer => Ok(DescriptorType::Buffer {
+                ty: BufferDescriptorType::Uniform,
+                format: BufferDescriptorFormat::Structured {
+                    dynamic_offset: false,
+                },
+            }),
+            StorageBuffer => Ok(DescriptorType::Buffer {
+                ty: BufferDescriptorType::Storage { read_only: false },
+                format: BufferDescriptorFormat::Structured {
+                    dynamic_offset: false,
+                },
+            }),
+            UniformBufferDynamic => Ok(DescriptorType::Buffer {
+                ty: BufferDescriptorType::Uniform,
+                format: BufferDescriptorFormat::Structured {
+                    dynamic_offset: true,
+                },
+            }),
+            StorageBufferDynamic => Ok(DescriptorType::Buffer {
+                ty: BufferDescriptorType::Storage { read_only: false },
+                format: BufferDescriptorFormat::Structured {
+                    dynamic_offset: true,
+                },
+            }),
             InputAttachment => Ok(DescriptorType::InputAttachment),
             AccelerationStructureNV => Err(ReflectTypeError::UnhandledAccelerationStructureNV),
             Undefined => Err(ReflectTypeError::UnhandledUndefined),
@@ -299,7 +332,7 @@ pub(crate) fn generate_attributes(
             out_attributes.insert((attribute.name.clone(), 0), reflected);
         } else {
             for n in 0..attribute.array.dims[0] {
-                let mut clone = reflected.clone();
+                let mut clone = reflected;
                 clone.location += n;
                 out_attributes.insert((attribute.name.clone(), n as u8), clone);
             }

@@ -297,7 +297,13 @@ where
         let (memory, ptr) = unsafe {
             let raw = device.allocate_memory(self.memory_type, self.linear_size)?;
 
-            let ptr = match device.map_memory(&raw, 0..self.linear_size) {
+            let ptr = match device.map_memory(
+                &raw,
+                gfx_hal::memory::Segment {
+                    offset: 0,
+                    size: Some(self.linear_size),
+                },
+            ) {
                 Ok(ptr) => NonNull::new_unchecked(ptr),
                 Err(gfx_hal::device::MapError::OutOfMemory(error)) => {
                     device.free_memory(raw);
@@ -347,7 +353,7 @@ where
             "Can't be allocated from not yet created line"
         );
         {
-            let ref mut line = self.lines[index];
+            let line = &mut self.lines[index];
             line.free += block.size();
         }
         block.dispose();

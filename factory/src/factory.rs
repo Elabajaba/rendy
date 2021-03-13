@@ -781,7 +781,13 @@ where
             self.instance.id(),
             "Resource is not owned by specified instance"
         );
-        drop(surface);
+        unsafe {
+            surface.dispose(
+                self.instance
+                    .as_instance()
+                    .expect("Cannot destroy surface without instance"),
+            );
+        }
     }
 
     /// Create target out of rendering surface.
@@ -1253,9 +1259,10 @@ where
             device,
             mut queue_groups,
         } = unsafe {
-            adapter
-                .physical_device
-                .open(&create_queues, adapter.physical_device.features())
+            adapter.physical_device.open(
+                &create_queues,
+                adapter.physical_device.features() - Features::NDC_Y_UP,
+            )
         }?;
 
         let families = unsafe {

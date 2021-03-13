@@ -112,7 +112,7 @@ where
                 "`requested_range` must be sub-range of `mapping_range`",
             );
         } else {
-            debug_assert_eq!(mapping_range.clone(), requested_range.clone());
+            debug_assert_eq!(mapping_range, requested_range);
         }
 
         MappedRange {
@@ -168,7 +168,7 @@ where
         );
 
         let sub_range = relative_to_sub_range(self.requested_range.clone(), range)
-            .ok_or_else(|| gfx_hal::device::MapError::OutOfBounds)?;
+            .ok_or(gfx_hal::device::MapError::OutOfBounds)?;
 
         let ptr =
             mapped_sub_range(self.ptr, self.mapping_range.clone(), sub_range.clone()).unwrap();
@@ -181,7 +181,13 @@ where
                 self.mapping_range.clone(),
                 aligned_sub_range.clone()
             ));
-            device.invalidate_mapped_memory_ranges(Some((self.memory.raw(), aligned_sub_range)))?;
+            device.invalidate_mapped_memory_ranges(Some((
+                self.memory.raw(),
+                gfx_hal::memory::Segment {
+                    offset: aligned_sub_range.start,
+                    size: Some(aligned_sub_range.end - aligned_sub_range.start),
+                },
+            )))?;
         }
 
         let slice = mapped_slice::<T>(ptr, size);
@@ -213,7 +219,7 @@ where
         );
 
         let sub_range = relative_to_sub_range(self.requested_range.clone(), range)
-            .ok_or_else(|| gfx_hal::device::MapError::OutOfBounds)?;
+            .ok_or(gfx_hal::device::MapError::OutOfBounds)?;
 
         let ptr =
             mapped_sub_range(self.ptr, self.mapping_range.clone(), sub_range.clone()).unwrap();
@@ -222,7 +228,7 @@ where
 
         let slice = mapped_slice_mut::<T>(ptr, size);
 
-        let ref memory = self.memory;
+        let memory = &self.memory;
         let flush = if !self.coherent.0 {
             let aligned_sub_range = align_range(sub_range, self.memory.non_coherent_atom_size());
             debug_assert!(is_sub_range(
@@ -231,7 +237,13 @@ where
             ));
             Some(move || {
                 device
-                    .flush_mapped_memory_ranges(Some((memory.raw(), aligned_sub_range)))
+                    .flush_mapped_memory_ranges(Some((
+                        memory.raw(),
+                        gfx_hal::memory::Segment {
+                            offset: aligned_sub_range.start,
+                            size: Some(aligned_sub_range.end - aligned_sub_range.start),
+                        },
+                    )))
                     .expect("Should flush successfully");
             })
         } else {
@@ -319,7 +331,7 @@ where
         );
 
         let sub_range = relative_to_sub_range(self.requested_range.clone(), range)
-            .ok_or_else(|| gfx_hal::device::MapError::OutOfBounds)?;
+            .ok_or(gfx_hal::device::MapError::OutOfBounds)?;
 
         let ptr =
             mapped_sub_range(self.ptr, self.mapping_range.clone(), sub_range.clone()).unwrap();

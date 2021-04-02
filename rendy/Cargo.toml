@@ -102,7 +102,7 @@ thread_profiler = "0.3.0"
 
 [dev-dependencies]
 genmesh = "0.6.2"
-nalgebra = "0.23.2"
+nalgebra = "0.25.4"
 env_logger = "0.8.2"
 lazy_static = "1.4.0"
 log = "0.4.11"
